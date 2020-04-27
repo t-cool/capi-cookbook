@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - Simple Tooltips</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li class="on"><a class="auto" href="index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Simple Tooltips</h2>
+<p>この例では、前章のObject Editorにhelp tooltipsを追加する方法を紹介します。tooltip textは、CLOSオブジェクトの定義にある:documentationフィールドから自動的に抽出されます </p>
+<p><a href="../list-A6S/index.html" target="_blank">Complete listing</a></p>
+<h3>例</h3>
+<p>前の例に収容人数(capacity)のテキストフィールドを加えるために、オブジェクトに:documentationを加えます。</p>
+<pre>(defclass classic-car ()
+  ((name :initarg :name :accessor name)
+   (year :initarg :year :type integer)
+   (cylinders :initarg :cylinders :type integer)
+   (capacity :initarg :capacity :type integer :documentation "Engine displacement in cc")))</pre>
+<p>こうすることで次のようなtooltipが表示されます。　</p>
+<p><img src="../pictures/O4/TOOLTIP.GIF" alt="tooltip.gif"></p>
+<h3>The implementation</h3>
+<p>tooltipsを追加するために、Object Editorの定義を次のように変更する必要があります。</p>
+<p>まず、<strong>edit-window</strong>クラスの定義に:help-callback initarg を追加します: </p>
+<pre>(defclass edit-window (capi:interface)
+  ((thing :initarg :thing :accessor thing))
+  (:default-initargs
+   :help-callback #'do-tooltip-help))</pre>
+<p><span class="Apple-style-span" style="font-family: Arial, Helvetica, sans-serif; font-size: 13px; white-space: normal;">次にhelp textを提供する<strong>do-tooltip-help</strong>を定義します。</span></p>
+<p>(defun do-tooltip-help (interface pane type key)<br>
+  　(declare (ignorable interface pane))<br>
+  　(when (eq type :tooltip)<br>
+  　　(documentation<br>
+  　　　　(find key (clos:class-slots (class-of (thing interface)))<br>
+  　　　　　:key 'clos:slot-definition-name) t)))</p>
+<p>これは、スロットのdocumentationと、編集ウィンドウに表示されているオブジェクトのクラスを抽出します</p>
+<p>最後に、それぞれのtooltipで表示されるテキストきめるために、スロット定義の<strong>:documentation</strong>フィールドにテキストを定義しましょう。</p>
+<p>(defclass classic-car ()<br>
+  　((name :initarg :name :accessor name)<br>
+　 (year :initarg :year :type integer :documentation &quot;Year first introduced&quot;)<br>
+　 (cylinders :initarg :cylinders :type integer :documentation &quot;Number of cylinders&quot;)<br>
+　 (capacity :initarg :capacity :type integer :documentation &quot;Engine displacement in cc&quot;)))</p>
+<hr>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,152 @@
+/* Smart stylesheet */
+
+html,body {margin:0;padding:0}
+
+body {
+	background:#ffffff url('bgTile.png') repeat-x;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:13px;
+}
+
+.wysiwyg { margin-left: -23px;}
+
+.wysiwyg textarea { width: 784px;}
+
+/* Text styles */
+
+td { border: 1px solid #DDD; vertical-align: top; min-width: 5px; min-height: 20px;padding-right: 6px; }
+
+th { min-width: 5px; min-height: 20px; }
+
+img {border: 0;}
+
+pre {
+	font-family: Monaco, Consolas, "Lucida Console", "Courier New", Courier, monospace;
+	font-size: 12px;
+}
+
+h1 {
+	font-weight:bold;
+	font-size:32px;
+	letter-spacing:-1px;
+	color:#43729b;
+}
+
+#header a:link, #header a:visited, #header a:hover {
+	text-decoration: none;
+}
+
+#header h1 {
+	position: absolute;
+	margin:0;
+	top: 32px ;
+	left: 148px;color: red;
+}
+
+
+.logo { margin: 4px 0 8px 0;}
+
+a, a:visited {
+	text-decoration:underline;
+	color:#343b56;
+}
+
+a:hover {
+	text-decoration:underline;
+	color:#343b56;
+}
+
+#container {
+	width:805px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#header, #content {
+	float:left;
+	width:745px;
+	padding: 0px 30px 0px 30px;
+	background: url('mainBG.png') repeat-y;
+}
+
+#header {
+	position: relative;
+	clear: both;
+	overflow: auto;
+}
+
+.headernav {position: absolute; right: 40px; top: 12px; }
+
+#footer {
+	float:left;
+	width:745px;
+	height:48px;
+	padding: 24px 30px 0px 30px;
+	margin-top:0;
+	background: url('bottomBorder.png') top no-repeat;
+}
+
+#footer p {margin: 0;}
+#footer a, #footer a:visited {text-decoration:none;color:#111; font-weight: normal}
+#footer a:hover {text-decoration:underline;color:#343b56;}
+#footer a.plain, div#footer a.plain:hover {text-decoration:none;color:#777}
+
+ul {
+	margin-left:0;
+	padding-left:-1em;
+}
+
+/* Navigation */
+
+#navigation {
+	float:left;
+	width:790px;
+	padding: 0px 8px 0px 7px;
+	background: url('mainBG.png') repeat-y;
+	font-size:11px;color:#ffffff;text-shadow: #333 2px 2px 2px;
+	line-height:15px;
+}
+
+#navigation .menu {
+	height: 25px;
+	background: url('bar.gif') bottom no-repeat;
+	padding-bottom: 2px;
+}
+
+#navigation ul {
+	margin:0;
+	padding:0px;
+	list-style:none;
+	float:left;
+}
+
+#navigation li {
+	float:left;
+	background: url("left.png") no-repeat left top;
+	margin:0;
+	padding:0 0 0 6px;
+}
+
+#navigation a {
+	float:left;
+	display:block;
+	background: url('right.png') no-repeat right top;
+	padding:5px 6px 5px 0px;
+	text-decoration:none;
+	font-weight:bold;
+	color:#fff;
+}
+/* Commented Backslash Hack
+   hides rule from IE5-Mac \*/
+#navigation a {float:none;}
+/* End IE5-Mac hack */
+
+#navigation .on {
+	background-image: url('left_on.png');
+}
+
+#navigation .on a {
+	background-image: url('right_on.png');
+	color:#fff;
+	padding-bottom:5px;
+}

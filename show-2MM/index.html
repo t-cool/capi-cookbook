@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - List Panels with Drag</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li class="on"><a class="auto" href="index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>List Panels with Drag</h2>
+<p>CAPIは、アプリケーション用にdouble-list-panelを提供しており、listのサブセットを選択する必要があります。例えば、あるシンボルを検索したいパッケージを選択する場合や、あるグループに追加されるユーザを選択したりする場合です。</p>
+<p>LispWorks バージョン6から、list-panelにドラッグ&amp;ドロップの機能が追加されました。このアプリケーションでは、list-paneと同等の機能をもつドラッグ&amp;ドロップが可能なdouble-list-panelを作ります。</p>
+<p><a href="../list-3R9/index.html" target="_blank">Complete listing</a></p>
+<h3>例</h3>
+<p>例えば、次のように生成したとします:</p>
+<p>(make-chooser '("Alligator" "Buzzard" "Cheetah" "Dolphin" "Elephant"))</p>
+<p>そうすると、&gt;&gt;&gt; や &lt;&lt;&lt; を使わずに、互いのリストに、ドラッグ&amp;ドロップでアイテムを移動できます:</p>
+<p><img src="../pictures/o4/drag.gif" alt="drag.gif"></p>
+<h3>定義</h3>
+<p>まず、list-panelからクラスを作ります。ドラッグ&amp;ドロップを検知するために、<strong>:drag-callback</strong> と <strong>:drop-callback</strong>のコールバック関数を追加します:</p>
+<pre>(defclass drag-list (capi:list-panel) ()
+  (:default-initargs
+   :drag-callback #'drag-callback
+   :drop-callback #'drop-callback
+   :interaction :extended-selection))</pre>
+<p>次は、interfaceを作るルーチンの定義です:</p>
+<pre>(defun make-chooser (items)
+  (let* ((deselected-items-pane (make-instance 'drag-list :title "Unselected Items:" :items items))
+         (selected-items-pane (make-instance 'drag-list :title "Selected Items:"))
+         (select-button
+          (make-instance 'capi:push-button :text "&gt;&gt;&gt;" :callback-type :none
+                         :callback #'(lambda ()
+                                       (move-items (capi:choice-selected-items deselected-items-pane)
+                                             deselected-items-pane selected-items-pane))))
+         (deselect-button
+          (make-instance 'capi:push-button :text "&lt;&lt;&lt;" :callback-type :none
+                         :callback #'(lambda () 
+                                       (move-items (capi:choice-selected-items selected-items-pane)
+                                             selected-items-pane deselected-items-pane))))
+         (button-layout 
+          (make-instance 'capi:column-layout :description (list select-button deselect-button)))
+         (layout 
+          (make-instance 'capi:row-layout :adjust :center 
+                         :description (list deselected-items-pane button-layout selected-items-pane) ))
+         (window
+          (make-instance 'capi:interface :title "Double-List Panel Test" 
+                         :best-width 500 :best-height 300 :layout layout)))
+    (capi:display window)))
+</pre>
+<p>このリストパネルは、パネル間でのドラッグ&amp;ドロップを検知するために、 <strong>:drag-callback</strong>と<strong>:drop-callback</strong>のコールバック関数をもちます。</p>
+<h3>ドラッグのコールバック関数</h3>
+<p>ドラッグのコールバック関数は、paneを含んだリストを作り、collectionアイテムんが後に続き、それに:lispの型を与えます:</p>
+<pre>(defun drag-callback (pane indices)
+  (list :lisp (cons pane (map 'list #'(lambda (i) (elt (capi:collection-items pane) i)) indices))))
+</pre>
+<h3>ドロップのコールバック関数</h3>
+<p>ドロップのコールバック関数は３つの段階があります:</p>
+<p><strong>:formats</strong>の段階では、どのフォーマットがドロップのターゲットに受け取られるかを特定します。この場合は、:lispフォーマットだけです。</p>
+<p><strong>:drag</strong>の段階では、他のpaneからドラッグがあったときに、ドロップのターゲットをハイライトします。LispWorksのドラッグ&amp;ドロップは、次のようにハイライトをきかせることができます:</p>
+<ul>
+  <li>個別のアイテム（例: ドロップがアイテムを置きかえるようなアプリケーション）</li>
+  <li>アイテム間gaps（例：ドロップが特定の位置にアイテムを挿入するようなアプリケーション）</li>
+  <li>全体のpanel（ドロップの場所が関連性のないクラス）</li>
+</ul>
+<p>このアプリケーションではm、ドロップの位置には配慮しません。</p>
+<p>オブジェクトの<strong>capi:drop-object-collection-index</strong>は、<strong>-1 :item</strong>の値に設定されます。</p>
+<p><strong>:drop</strong>の段階では、ドロップがされたときにアイテムを受けとります。</p>
+<pre>(defmethod drop-callback (pane drop-object stage)
+  (case stage
+    (:formats
+     (capi:set-drop-object-supported-formats drop-object (list :lisp)))
+    (:drag
+       (when (and 
+              (capi:drop-object-provides-format drop-object :lisp)
+              (capi:drop-object-allows-drop-effect-p drop-object :move)
+              ;; Don't allow drop on self
+              (not (eq pane (car (capi:drop-object-get-object drop-object pane :lisp)))))
+         ;; Ignore drop position
+         (setf (capi:drop-object-collection-index drop-object)
+               (values -1 :item))
+         (setf (capi:drop-object-drop-effect drop-object) :move)))
+    (:drop
+       (when (and 
+              (capi:drop-object-provides-format drop-object :lisp)
+              (capi:drop-object-allows-drop-effect-p drop-object :move))
+         (let ((drag (capi:drop-object-get-object drop-object pane :lisp)))
+           (move-items (cdr drag) (car drag) pane)
+           (setf (capi:drop-object-drop-effect drop-object) :copy))))))
+</pre>
+<div>
+  <p>ボタンとドロップの動作は <strong>move-items</strong>を使い、実際に２つのリストの間を移動できるようにします:</p>
+</div>
+<div>
+<pre>(defun move-items (items from to)
+  (capi:remove-items from items)
+  (capi:append-items to items))</pre>
+</div>
+<h3>さらに進んだアプリケーション</h3>
+<p>この例は、3つ以上のリストパネルがあるwindowにも応用できます。drag-listのインスタンスを追加することで、互いのパネルの間でアイテムをドラッグできます:</p>
+<p><img src="../pictures/o4/drag3.gif" alt="drag3.gif"></p>
+<p>例えば、アプリケーションでは、複数のグループ間のユーザを割り当てることも可能です。これは、ボタンだけで実装するのはとても難しいです。</p>
+<h3>制限</h3>
+<p>この例では、以下のようなCAPIにビルドインのdouble-list-panelでの凝った機能は実装していません:</p>
+<ul>
+  <li>適切なパネルでアイテムが1つも選ばれなかったときに、ボタンを無効化する機能</li>
+  <li>Returnキーの利用</li>
+  <li>アイテムの並び替え</li>
+</ul>
+<hr>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

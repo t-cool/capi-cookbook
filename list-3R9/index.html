@@ -1,0 +1,84 @@
+;;;-*- Mode: Lisp; Package: CL-USER -*-
+
+;;
+;; Double list panel with drag
+;;
+;; Copyright (C) 2011 David Johnson-Davies
+;; You are free to use, modify, and redistribute this code however you want, except that any modifications
+;; must be clearly indicated before redistribution. There is no warranty, expressed nor implied.
+
+(defclass drag-list (capi:list-panel) ()
+  (:default-initargs
+   :drag-callback #'drag-callback
+   :drop-callback #'drop-callback
+   :interaction :extended-selection))
+
+(defun make-chooser (items)
+  (let* ((deselected-items-pane (make-instance 'drag-list :title "Unselected Items:" :items items))
+         (selected-items-pane (make-instance 'drag-list :title "Selected Items:"))
+         (select-button
+          (make-instance 'capi:push-button :text ">>>" :callback-type :none
+                         :callback #'(lambda ()
+                                       (move-items (capi:choice-selected-items deselected-items-pane)
+                                             deselected-items-pane selected-items-pane))))
+         (deselect-button
+          (make-instance 'capi:push-button :text "<<<" :callback-type :none
+                         :callback #'(lambda () 
+                                       (move-items (capi:choice-selected-items selected-items-pane)
+                                             selected-items-pane deselected-items-pane))))
+         (button-layout 
+          (make-instance 'capi:column-layout :description (list select-button deselect-button)))
+         (layout 
+          (make-instance 'capi:row-layout :adjust :center 
+                         :description (list deselected-items-pane button-layout selected-items-pane) ))
+         (window
+          (make-instance 'capi:interface :title "Double-List Panel Test" 
+                         :best-width 500 :best-height 300 :layout layout)))
+    (capi:display window)))
+
+(defun drag-callback (pane indices)
+  (list :lisp (cons pane (map 'list #'(lambda (i) (elt (capi:collection-items pane) i)) indices))))
+
+(defmethod drop-callback (pane drop-object stage)
+  (case stage
+    (:formats
+     (capi:set-drop-object-supported-formats drop-object (list :lisp)))
+    (:drag
+       (when (and 
+              (capi:drop-object-provides-format drop-object :lisp)
+              (capi:drop-object-allows-drop-effect-p drop-object :move)
+              ;; Don't allow drop on self
+              (not (eq pane (car (capi:drop-object-get-object drop-object pane :lisp)))))
+         ;; Ignore drop position
+         (setf (capi:drop-object-collection-index drop-object)
+               (values -1 :item))
+         (setf (capi:drop-object-drop-effect drop-object) :move)))
+    (:drop
+       (when (and 
+              (capi:drop-object-provides-format drop-object :lisp)
+              (capi:drop-object-allows-drop-effect-p drop-object :move))
+         (let ((drag (capi:drop-object-get-object drop-object pane :lisp)))
+           (move-items (cdr drag) (car drag) pane)
+           (setf (capi:drop-object-drop-effect drop-object) :copy))))))
+
+(defun move-items (items from to)
+  (capi:remove-items from items)
+  (capi:append-items to items))
+
+; Example
+
+(make-chooser '("Alligator" "Buzzard" "Cheetah" "Dolphin" "Elephant"))
+
+; Version with three lists
+
+(defun make-chooser2 (items)
+  (let* ((deselected-items-pane (make-instance 'drag-list :title "Unselected Items:" :items items))
+         (selected-items-pane1 (make-instance 'drag-list :title "Selected Items 1:"))
+         (selected-items-pane2 (make-instance 'drag-list :title "Selected Items 2:"))
+         (layout 
+          (make-instance 'capi:row-layout :adjust :center 
+                         :description (list deselected-items-pane selected-items-pane1 selected-items-pane2) ))
+         (window
+          (make-instance 'capi:interface :title "Double-List Panel Test" 
+                         :best-width 500 :best-height 300 :layout layout)))
+    (capi:display window)))

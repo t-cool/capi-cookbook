@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li class="on"><a class="auto" href="../show-O6/index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Introduction</h2>
+<p>I recently undertook the task of converting a series of applications from the now discontinued Macintosh Common Lisp to LispWorks on the Macintosh. The major part of the work was converting the user interface to work with the LispWorks CAPI, which uses a totally different approach, and different terminology, from the user interface extensions in Macintosh Common Lisp.</p>
+<p>This cookbook gives a few examples resulting from this experience, generalised in the hope that they will be useful to other LispWorks programmers. They show how to use the LispWorks CAPI to create a number of simple but useful interface applications.</p>
+<p>You are free to use, modify, and re-distribute this code however you want.</p>
+<h3>Latest additions</h3>
+<p><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a> 13th October 2011.</p>
+<h3><a class="xref" href="../show-Y6/index.html">Spreadsheet</a></h3>
+<p>A general-purpose multi-column table for displaying data:</p>
+<p><img src="../pictures/o4/cars.gif" alt="cars.gif"></p>
+<h3><a class="xref" href="../show-1MG/index.html">Object Editor</a></h3>
+<p>A simple object editor for editing the slots in CLOS objects.</p>
+<p><img src="../pictures/o4/cars2.gif" alt="cars2.gif"></p>
+<h3><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></h3>
+<p>Adds tooltip help to the Object Editor:</p>
+<p><img src="../pictures/O4/TOOLTIP.GIF" alt="tooltip.gif"></p>
+<h3><a class="xref" href="../show-1MH/index.html">Multi-Process Dolist</a></h3>
+<p>A version of dolist that runs the tasks in parallel, with a progress bar:</p>
+<p><img src="../pictures/o4/progress.gif" alt="progress.gif"></p>
+<h3><a class="xref" href="../show-2IC/index.html">Boolean Filters Layout</a></h3>
+<p>A filtering-layout with a multi-column-list-panel, and pop-up-menus that implement boolean filters on specified columns of the data:</p>
+<p><img src="../pictures/o4/booleanfilters.gif" alt="booleanfilters.gif"></p>
+<h3><a class="xref" href="../show-2MM/index.html">List Panels with Drag</a></h3>
+<p>Adding drag-and-drop between the lists of a double-list-panel:</p>
+<p><img src="../pictures/o4/drag.gif" alt="drag.gif"></p>
+<hr>
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+var disqus_developer = 1;
+var disqus_shortname = 'capi';
+var disqus_identifier = 'O6';
+var disqus_url = 'http://capi.plasticki.com/show?O6';
+(function() {
+var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

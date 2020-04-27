@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - Spreadsheet</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li class="on"><a class="auto" href="index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Spreadsheet</h2>
+<p>この例では、　CAPI multi-column-list-panelの使い、データを表示するために、汎用の複数のカラムがある表を作る方法を学びます。一般的には、次のようにします。</p>
+<pre>(spreadsheet rows columns cell-fn)</pre>
+<p>・行(rows)は、上から下に表示される項目のリストです。</p>
+<p>・列(columns)は、テーブル上部に表示されるアイテムのリストです。</p>
+<p>・そして、cell-fnは、 各セルの内容を計算する２つの引数の関数です。</p>
+<p><a href="../list-3OX/index.html" target="_blank">Complete listing</a></p>
+<h3>例</h3>
+<p>この例では、1から10までの累乗を計算します。</p>
+<p>(spreadsheet '(1 2 3 4 5 6 7 8 9 10) '(1 2 3 4 5 6) #'expt)</p>
+<p>こう書くことで、次のように表示されます:</p>
+<p><img src="../pictures/o4/powers.gif" alt="powers.gif"></p>
+<p>カラムのheadingをクリックすると、そのカラムを昇順か降順で並べ替えます。表は、その内容が文字列か数字かに基づいて、正確に並べ替えられます。</p>
+<p>そのcommandは、**row-label-fn**と **column-label-fn** を取ることができます。それらは、表の左側と上部に伴うラベルを計算するときに使われます。例えば、以下のように定義されるクラスがあると仮定しましょう:</p>
+<pre>(defclass classic-car ()
+  ((name :initarg :name :accessor name)
+   (year :initarg :year)
+   (cylinders :initarg :cylinders)
+   (capacity :initarg :capacity)))
+</pre>
+<p>次のようなインスタンスを定義できます:</p>
+<pre>(defparameter *cars*
+  (list
+   (make-instance 'classic-car :name "Saab 96V4" :year 1967 :cylinders 4 :capacity 1498) 
+   (make-instance 'classic-car :name "Porsche 911 Carrera" :year 1984 :cylinders 6 :capacity 3200)
+   (make-instance 'classic-car :name "MGC" :year 1967 :cylinders 6 :capacity 2912)
+   (make-instance 'classic-car :name "Ferrari Daytona" :year 1968 :cylinders 12 :capacity 4390)))</pre>
+<p>全てのオブジェクトとそのスロットを含む表を表示するには次のように呼びます:</p>
+<pre>(spreadsheet *cars* '(year cylinders capacity) #'slot-value <br>  :row-label-fn #'name :column-label-fn #'string-capitalize)</pre>
+<p>こう書くことで、次のように表示されます:</p>
+<p><img src="../pictures/o4/cars.gif" alt="cars.gif"></p>
+<h3>定義</h3>
+<p>spreadsheet関数の定義です:</p>
+<pre>(defun spreadsheet (rows columns cell-fn 
+                         &amp;key (title "Spreadsheet") (row-label-fn #'identity) (column-label-fn #'identity))
+  "行と列からなる要素の組み合わせにcell-fnを適応することで表を描く"
+  (let* ((sequence (map 'list
+                        #'(lambda (row) 
+                            (cons (funcall row-label-fn row) 
+                                  (map 'list 
+                                       #'(lambda (column) (funcall cell-fn row column)) columns))) rows))
+         (table (make-instance 'capi:multi-column-list-panel 
+                               :items sequence
+                               :header-args '(:selection-callback :sort)
+                               :columns (cons '(:width 144 :title :| |) 
+                                              (map 'list 
+                                                   #'(lambda (column) 
+                                                       (list 
+                                                        :width 72 
+                                                        :title (intern
+                                                                (princ-to-string 
+                                                                 (funcall column-label-fn column)) 
+                                                                :keyword))) 
+                                                   columns))
+                               :callback-type :collection-data 
+                               :sort-descriptions (spreadsheet-sort-descriptions
+                                                   columns 
+                                                   :column-label-fn column-label-fn)
+                               :external-min-width (+ 144 (* 76 (length columns))) 
+                               :external-max-width nil :external-min-height 240))
+         (window (make-instance 'capi:interface 
+                                :title title
+                                :layout (make-instance 'capi:column-layout :description (list table)))))
+    (capi:display window)))</pre>
+<p>This creates a multi-column-list-panel with the following parameters:</p>
+<p><strong>:items</strong>は<strong>sequence</strong>に設定されます。 <strong>sequence</strong>は、表の行(rows)のリストです。それぞれの行は、行のlabelで構成されるリストであり、その行のitemsが後に続きます。</p>
+<p><strong>:columns</strong> は、それぞれの列の幅とタイトルを明示するリストにセットされます。それぞれの列は、キーワードで特定されます。キーワードは、列のタイトルとして使われるだけでなく、列の記述を並び替えるためにも使われます。初めの列は、:| | のラベルを持っています。:| | は、スペースをその名前として持っているキーワードです。<strong>:sort-descriptions</strong> は、それぞれの列にthe sorting descriptionsを生成するために <strong>s<span style="white-space: pre;">preadsheet-sort-descriptions</span></strong>を使います。それは、sorting-descriptionsのリストを返して、それぞれの列に１つずつ、列をlabellingしているキーワードに<strong>:type</strong>をセットします。</p>
+<pre>(defun spreadsheet-sort-descriptions (columns &amp;key (column-label-fn #'identity))
+  (let ((n 0))
+    (cons
+     (capi:make-sorting-description
+      :type :| |
+      :sort (test-nth 0)
+      :reverse-sort (test-nth 0 t))
+     (map 'list #'(lambda (column)
+                    (incf n)
+                    (capi:make-sorting-description
+                     :type (intern (princ-to-string (funcall column-label-fn column)) :keyword)
+                     :sort (test-nth n)
+                     :reverse-sort (test-nth n t)))
+          columns))))</pre>
+<p>sorting-descriptionは 、nth itemに基づいて全ての行を並べ替えます。</p>
+<p><strong>test-nth</strong>は、それに渡される２つのリストのnth itemsと、x yの２つのパラメータを比較するために、関数を返します。</p>
+<p><strong>test-nth</strong> は次のように定義されます:</p>
+<pre>(defun test-nth (n &amp;optional reverse)
+  #'(lambda (x y) 
+      (funcall (if (numberp (funcall #'nth n x)) #'&gt; #'string-greaterp) 
+               (funcall #'nth n (if reverse y x))
+               (funcall #'nth n (if reverse x y)))))</pre>
+<p><strong>test-nth</strong> は、比較されているitemsを見て、 <strong>&gt;</strong> か <strong>string-greaterp</strong> をitemsを並べかえるために適切に使います。なので、異なる型のデータを含んでいら場合でも正確に動作します。</p>
+<h3>補足</h3>
+<p>2015年8月16日：<strong>:column-label-fn</strong> パラメーターを使うと生じる並べかえの問題を修正するために、<strong>:column-label-fn</strong> パラメーターが<strong>spreadsheet-sort-descriptions</strong>に追加されました。</p>
+<hr>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - Boolean Filters Layout</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li class="on"><a class="auto" href="index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Boolean Filters Layout</h2>
+<p>CAPIには、<strong>list-panel</strong>にテキストフィルターを追加する<strong>filtering-layout</strong>があります。このプロジェクトでは、 <strong>multi-column-list-panel</strong>を使って<strong>filtering-layout</strong>を作る方法を紹介します。論理値フィルターを追加し、特定の列(column)の論理値をもとに、アイテムを並べかえるフィルターを追加します。</p>
+<p><img src="../pictures/o4/booleanfilters.gif" alt="booleanfilters.gif"></p>
+<p><a href="../list-3QS/index.html" target="_blank">Complete listing</a></p>
+<h3>定義</h3>
+<p>この例は、<strong>capi:define-interface</strong>を使うと簡単に実装できますが、<strong>filtering-layout</strong>について明確にするために、遠回りをして説明をします。まず、今回のwindowのクラス定義です。アイテム、テキストフィルター、論理値フィルター、リストパネルに対応するスロットがあります。</p>
+<pre>
+(defclass items-window (capi:interface)
+  ((things :initarg :things :reader things)
+   (filter :initarg :filter :reader filter)
+   (booleans :initarg :booleans :reader booleans)
+   (list-panel :initarg :list-panel :reader list-panel)))</pre>
+<h3>アイテムのウィンドウを作る</h3>
+<p>アイテムのwindowは、<strong>make-items-window</strong>関数によって描写されます。</p>
+<p>それぞれのアイテムは 値のリストで、 <strong>*columns*</strong>によって特定されると仮定します。</p>
+<pre>(defparameter *columns* '("Name" "No" "Even?" "Prime?"))</pre>
+<p>論理値を含む列(column)は、<strong>*boolean-columns*</strong>によって特定されます。</p>
+<p>(defparameter *boolean-columns* '("Even?" "Prime?"))</p>
+<p>では、アイテムのwindowを作る関数を見ていきましょう。</p>
+<pre><span style="font-family: Arial, Helvetica, sans-serif; font-size: small;"> </span>(defun make-items-window (things)
+  (let* ((list-panel
+          (make-instance 'capi:multi-column-list-panel :items things :external-min-height 140
+                         :columns (map 'list #'(lambda (column) (list :title column :width 100)) *columns*)))
+         (filter
+          (make-instance 'capi:filtering-layout :change-callback 'update-items-window))
+         (booleans 
+          (map 'list
+               #'(lambda (column)
+                   (make-instance 'capi:option-pane :title column :items '("" "Yes" "No")<br>                                  :external-max-width 64 :callback-type :interface <br>                                  :selection-callback #'update-items-window))</pre>
+<pre>               *boolean-columns*))
+         (booleans-row
+          (make-instance 'capi:row-layout :description booleans))
+         (layout
+          (make-instance 'capi:column-layout 
+                         :description (list filter booleans-row list-panel)))
+         (window
+          (make-instance 'items-window :title "Filtering example" :best-width 480 :things things 
+                         :list-panel list-panel :filter filter :booleans booleans :layout layout)))
+    (capi:display window)))
+
+それぞれの列は<strong>*boolean-columns*</strong>で特定され、空欄YesNoのオプションがあるポップアップメニューが作られます。</pre>
+<p><img src="../pictures/o4/filterpopup.gif" alt="filterpopup.gif"></p>
+<p>text-input-paneフィルターに文字を打ち込むか、ポップアップメニューに何か変更を加えると、<strong>update-items-window</strong>が呼び出されます。この関数は、リストパネルのcollectionアイテムを再計算して、フィルターの新しい値を反映します:</p>
+<pre>(defun update-items-window (window)
+  (let* ((things (things window))
+         (options (map 'list #'capi:choice-selection (booleans window)))
+         (positions (map 'list #'(lambda (boolean)
+                                   (position (capi:titled-object-title boolean) *columns* :test #'equalp))
+                         (booleans window)))
+         (filtered-things 
+          (multiple-value-bind (regexp excludep)
+              (capi:filtering-layout-match-object-and-exclude-p (filter window) nil)
+            (remove-if-not
+             #'(lambda (item)
+                 (and
+                  (if regexp (find-regexp-in-string regexp (first item)) t)
+                  (every #'(lambda (option position)
+                             (or (zerop option) 
+                                 (eq (not (= 1 option)) (not (nth position item)))))
+                         options positions)))
+             things))))
+    (setf (capi:collection-items
+           (list-panel window)) filtered-things)))</pre>
+<p>items-windowで表示されるデータのリストを生成するルーチンを確認しましょう:</p>
+<pre>(defun prime? (n)
+  (let ((test 2))
+    (loop
+     (when (&gt; (* test test) n) (return t))
+     (when (zerop (rem n test)) (return nil))
+     (incf test))))</pre>
+<p>この関数は、0から999までの整数の1000のentriesのリストを生成します:</p>
+<pre>(setq *things*
+   (let (things)
+     (dotimes (x 1000 (reverse things)) 
+       (push 
+        (list (format nil "~r" x) x (evenp x) (prime? x))
+        things))))</pre>
+<p>最後に、次のように、items-windowを表示しましょう:</p>
+<pre>(make-items-window *things*)</pre>
+<hr>
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+var disqus_developer = 1;
+var disqus_shortname = 'capi';
+var disqus_identifier = '2IC';
+var disqus_url = 'http://capi.plasticki.com/show?2IC';
+(function() {
+var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

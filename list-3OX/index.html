@@ -1,0 +1,82 @@
+;;;-*- Mode: Lisp; Package: CL-USER -*-
+
+;;
+;; Spreadsheet for displaying tables of data. v2 16th August 2015
+;;
+;; Copyright (C) 2011-2015 David Johnson-Davies
+;; You are free to use, modify, and redistribute this code however you want, except that any modifications
+;; must be clearly indicated before redistribution. There is no warranty, expressed nor implied.
+
+(defun test-nth (n &optional reverse)
+  #'(lambda (x y) 
+      (funcall (if (numberp (funcall #'nth n x)) #'> #'string-greaterp) 
+               (funcall #'nth n (if reverse y x))
+               (funcall #'nth n (if reverse x y)))))
+
+(defun spreadsheet-sort-descriptions (columns &key (column-label-fn #'identity))
+  (let ((n 0))
+    (cons
+     (capi:make-sorting-description
+      :type :| |
+      :sort (test-nth 0)
+      :reverse-sort (test-nth 0 t))
+     (map 'list #'(lambda (column)
+                    (incf n)
+                    (capi:make-sorting-description
+                     :type (intern (princ-to-string (funcall column-label-fn column)) :keyword)
+                     :sort (test-nth n)
+                     :reverse-sort (test-nth n t)))
+          columns))))
+
+(defun spreadsheet (rows columns cell-fn 
+                         &key (title "Spreadsheet") (row-label-fn #'identity) (column-label-fn #'identity))
+  "Draws a table by applying cell-fn to each combination of an element from the rows and columns lists."
+  (let* ((sequence (map 'list
+                        #'(lambda (row) 
+                            (cons (funcall row-label-fn row) 
+                                  (map 'list 
+                                       #'(lambda (column) (funcall cell-fn row column)) columns))) rows))
+         (table (make-instance 'capi:multi-column-list-panel 
+                               :items sequence
+                               :header-args '(:selection-callback :sort)
+                               :columns (cons '(:width 144 :title :| |) 
+                                              (map 'list 
+                                                   #'(lambda (column) 
+                                                       (list 
+                                                        :width 72 
+                                                        :title (intern
+                                                                (princ-to-string 
+                                                                 (funcall column-label-fn column)) 
+                                                                :keyword))) 
+                                                   columns))
+                               :callback-type :collection-data 
+                               :sort-descriptions (spreadsheet-sort-descriptions
+                                                   columns 
+                                                   :column-label-fn column-label-fn)
+                               :external-min-width (+ 144 (* 76 (length columns))) 
+                               :external-max-width nil :external-min-height 240))
+         (window (make-instance 'capi:interface 
+                                :title title
+                                :layout (make-instance 'capi:column-layout :description (list table)))))
+    (capi:display window)))
+
+; Demo1
+
+(spreadsheet '(1 2 3 4 5 6 7 8 9 10) '(1 2 3 4 5 6) #'expt)
+
+; Demo2
+
+(defclass classic-car ()
+  ((name :initarg :name :accessor name)
+   (year :initarg :year)
+   (cylinders :initarg :cylinders)
+   (capacity :initarg :capacity)))
+
+(defparameter *cars*
+  (list
+   (make-instance 'classic-car :name "Saab 96V4" :year 1967 :cylinders 4 :capacity 1498) 
+   (make-instance 'classic-car :name "Porsche 911 Carrera" :year 1984 :cylinders 6 :capacity 3200)
+   (make-instance 'classic-car :name "MGC" :year 1967 :cylinders 6 :capacity 2912)
+   (make-instance 'classic-car :name "Ferrari Daytona" :year 1968 :cylinders 12 :capacity 4390)))
+
+(spreadsheet *cars* '(year cylinders capacity) #'slot-value :row-label-fn #'name :column-label-fn #'string-capitalize)

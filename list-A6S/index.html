@@ -1,0 +1,91 @@
+;;;-*- Mode: Lisp; Package: CL-USER -*-
+
+;;
+;; Adding simple tooltips to the Object Editor
+;;
+;; Copyright (C) 2011 David Johnson-Davies
+;; You are free to use, modify, and redistribute this code however you want, except that any modifications
+;; must be clearly indicated before redistribution. There is no warranty, expressed nor implied.
+
+(defclass classic-car ()
+  ((name :initarg :name :accessor name)
+   (year :initarg :year :type integer :documentation "Year first introduced")
+   (cylinders :initarg :cylinders :type integer :documentation "Number of cylinders")
+   (capacity :initarg :capacity :type integer :documentation "Engine displacement in cc")))
+
+(defparameter *cars*
+  (list
+   (make-instance 'classic-car :name "Saab 96V4" :year 1967 :cylinders 4 :capacity 1498) 
+   (make-instance 'classic-car :name "Porsche 911 Carrera" :year 1984 :cylinders 6 :capacity 3200)
+   (make-instance 'classic-car :name "MGC" :year 1967 :cylinders 6 :capacity 2912)
+   (make-instance 'classic-car :name "Ferrari Daytona" :year 1968 :cylinders 12 :capacity 4390)))
+
+(defclass edit-window (capi:interface)
+  ((thing :initarg :thing :accessor thing))
+  (:default-initargs
+   :help-callback #'do-tooltip-help))
+
+(defun do-tooltip-help (interface pane type key)
+  (declare (ignorable interface pane))
+   (when (eq type :tooltip)
+     (documentation 
+      (find key (clos:class-slots (class-of (thing interface)))
+            :key 'clos:slot-definition-name)
+      t)))
+
+(defclass field (capi:text-input-pane)
+  ((thing :initarg :thing :accessor thing)
+   (table :initarg :table :accessor table)
+   (type :initarg :type :accessor fieldtype))
+  (:default-initargs
+   :title-args '(:external-min-width 72)
+   :editing-callback
+   #'(lambda (pane type) (case type (:end (save-field pane))))))
+
+(defun make-edit-window (thing table)
+  (let* ((ok (make-instance 'capi:push-button :text "OK" :default-p t
+                            :callback-type :interface :selection-callback #'capi:quit-interface))
+         (slots-to-edit (remove-if-not #'(lambda (s) (eq (clos:slot-definition-allocation s) :instance))
+                                       (clos:class-slots (class-of thing))))
+         (fields (map 'list #'(lambda (slot)
+                                (let ((slotname (clos:slot-definition-name slot))
+                                      (slottype (clos:slot-definition-type slot)))
+                                  (make-instance 'field :name slotname :thing thing 
+                                                 :type slottype :table table
+                                                 :text (princ-to-string (slot-value thing slotname))
+                                                 :title (string-capitalize slotname)))) 
+                      slots-to-edit))
+         (layout (make-instance 'capi:column-layout :description (append fields (list ok))))
+         (window (make-instance 'edit-window :thing thing :title (name thing) :layout layout 
+                                :best-width 320 :confirm-destroy-function #'save-field-with-focus)))
+    (capi:display window)))
+
+(defun save-field-with-focus (w)
+  (let ((focus (capi:pane-descendant-child-with-focus w)))
+    (when focus (save-field focus)))
+  t) ; for confirm-destroy
+
+(defmethod save-field ((f field))
+  "Called to save data from field."
+  (let* ((thing (thing f))
+         (table (table f))
+         (slot (capi:capi-object-name f))
+         (value (case (fieldtype f)
+                  (integer (parse-integer (capi:text-input-pane-text f) :junk-allowed t))
+                  (t (capi:text-input-pane-text f)))))
+    (setf (slot-value thing slot) value)
+    (capi:choice-update-item table thing)))
+
+(defun make-list-window (list)
+    (let* ((table (make-instance 'capi:list-panel :items list   
+                                 :print-function #'name
+                                 :callback-type '(:data :collection)
+                                 :action-callback #'(lambda (thing table) (edit thing table))))
+           (window (make-instance 'capi:interface :best-width 320 :best-height 224 :title "Cars"
+                                  :layout (make-instance 'capi:column-layout :description (list table)))))
+      (capi:display window)))
+
+(defun edit (thing table)
+  (let ((existing (find thing (capi:collect-interfaces 'edit-window) :key #'thing)))
+    (if existing (capi:raise-interface existing)
+      (make-edit-window thing table))))

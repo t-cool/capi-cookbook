@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - Object Editor</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li class="on"><a class="auto" href="index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="../show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Object Editor</h2>
+<p>CLOSオブジェクトを使うと、Lispで簡単にシンプルなデータベースを実装できます。 この例では、シンプルなobject editorを用いて、CLOSオブジェクトを書くためのCAPI interfaceの使い方を説明します。</p>
+<p><a href="../list-3PI/index.html" target="_blank">Complete listing</a></p>
+<h3>例</h3>
+<p>*cars*という変数にCLOSオブジェクトのリストがあると仮定します。そうすると、次のようにオブジェクトのリストを表示できます。</p>
+<p>(make-list-window *cars*)</p>
+<p>これを実行すると、次のように表示されます:</p>
+<p><img src="../pictures/o4/listbefore.gif" alt="listbefore.gif"></p>
+<p>項目をダブルクリックすると、そのオブジェクトのスロットを表示する編集画面が表示されます:</p>
+<p><img src="../pictures/o4/editbefore.gif" alt="editbefore.gif"></p>
+<p>あるフィールドを編集すると、対応するスロットが変更されます。</p>
+<p><img src="../pictures/o4/editafter.gif" alt="editafter.gif"></p>
+<p><strong>名前</strong>のフィールドを編集すると、一覧のウィンドウに反映されます。</p>
+<p><img src="../pictures/o4/listafter.gif" alt="listafter.gif"></p>
+<p>そのエディターは、<strong>defclass</strong> の定義からスロットの名前を自動で読み取るので、スロットを <strong>defclass</strong> の定義に加えると、フィールドが編集ウィンドウに加わります。別にプログラムを書く必要はありません。この例では、文字列と整数のスロットだけ処理できますが、他の型も容易に追加できます。</p>
+<h3>定義</h3>
+<p><strong>edit-window</strong>クラスは、編集されているオブジェクトに対して、<strong>thing</strong> スロットを<strong>capi:interface</strong>クラスに追加します:</p>
+<pre>(defclass edit-window (capi:interface)
+  ((thing :initarg :thing :accessor thing))) </pre>
+<p>The fields displayed on the <strong>edit-window</strong> use the <strong>field</strong> class, which is based on <strong>capi:text-input-pane</strong>:</p>
+<p> <strong>edit-window</strong> で表示されているフィールドは、<strong>field</strong>クラスを使います。<strong>field</strong>クラスは、<strong>capi:text-input-pane</strong>に基づいています:</p>
+<p>(defclass field (capi:text-input-pane)<br>
+　((thing :initarg :thing :accessor thing)<br>
+　 (table :initarg :table :accessor table)<br>
+　 (type :initarg :type :accessor fieldtype))<br>
+　(:default-initargs<br>
+　 :title-args<br>
+　 '(:external-min-width 72)<br>
+　 :editing-callback<br>
+　 #'(lambda (pane type) (case type (:end (save-field pane))))))</p>
+<p>こうすることで、次のスロットをtext-input-paneクラスに追加することができます。</p>
+<ul>
+  <li>
+<strong>thing</strong> - 編集中の親オブジェクトへの参照を含みます</li>
+<li><strong>type</strong> - スロットの型。現状では、整数だけがサポートされています</li>
+<li><strong>table</strong> - 親テーブルを参照します</li>
+</ul>
+<p>編集ウィンドウを表示するための手順です:</p>
+<pre>(defun make-edit-window (thing table)
+  (let* ((ok (make-instance 'capi:push-button :text "OK" :default-p t
+                            :callback-type :interface :selection-callback #'capi:quit-interface))
+         (slots-to-edit (remove-if-not #'(lambda (s) (eq (clos:slot-definition-allocation s) :instance))
+                                       (clos:class-slots (class-of thing))))
+         (fields (map 'list #'(lambda (slot)
+                                (let ((slotname (clos:slot-definition-name slot))
+                                      (slottype (clos:slot-definition-type slot)))
+                                  (make-instance 'field :name slotname :thing thing 
+                                                 :type slottype :table table
+                                                 :text (princ-to-string (slot-value thing slotname))
+                                                 :title (string-capitalize slotname)))) 
+                      slots-to-edit))
+         (layout (make-instance 'capi:column-layout :description (append fields (list ok))))
+         (window (make-instance 'edit-window :thing thing :title (name thing) :layout layout 
+                                :best-width 320 :confirm-destroy-function #'save-field-with-focus)))
+    (capi:display window)))
+</pre>
+<p>make-edit-window では、オブジェクトに定義されるクラスのスロットから、<strong>slots-to-edit</strong> を作ります。その後、それぞれのスロットのfieldを含む<strong>fields</strong> が作られます。それぞれのフィールドは、関連するスロットにちなんで名付けられます。これは編集されたフィールドが適切なスロットに保存されるために使われます。layout descriptionとして、<strong>capi:column-layout</strong>が、フィールドのリストや<strong>OK</strong>ボタンと一緒に生成されます。</p>
+<h3>保存のフィールド</h3>
+<p>ユーザーが編集後にフィールドの外をクリックしたとき、<strong>field</strong>クラスは<strong>save-field</strong>を呼ぶために<strong>editing-callback</strong>を使います。そして、フィールドの内容が、編集されたオブジェクトの適切なスロットに保存されます。</p>
+<pre style="color: #000000; font-family: Monaco, Consolas, 'Lucida Console', 'Courier New', Courier, monospace; font-size: 12px; margin: 8px;">(defmethod save-field ((f field))
+  "フィールドからデータを保存するために呼び出される"
+  (let* ((thing (thing f))
+         (table (table f))
+         (slot (capi:capi-object-name f))
+         (value (case (fieldtype f)
+                  (integer (parse-integer (capi:text-input-pane-text f) :junk-allowed t))
+                  (t (capi:text-input-pane-text f)))))
+    (setf (slot-value thing slot) value)
+    (capi:choice-update-item table thing)))</pre>
+<p>編集ウィンドウは、<strong>confirm-destroy-function</strong>コールバックも使います。編集ウィンドウが閉じられたときに、フォーカスでフィールドを保存します。こうすることで、ユーザが、他のフィールドにフォーカスを移動しせずに、フィールドを編集してウィンドウを閉じてしまう状況にも対応できます。CAPIは、こういう状況では<strong>capi:text-input-pane</strong>のために<strong>editing-callback</strong> を呼び出さないのが原因です。</p>
+<p>(defun save-field-with-focus (w)
+  (let ((focus (capi:pane-descendant-child-with-focus w)))
+    (when focus (save-field focus)))
+  t)</p>
+<h3>一覧ウィンドウ</h3>
+<p>最後に、編集されるオブジェクトが一覧表示されるための<strong>make-list-window</strong>関数をみましょう。ある一つのオブジェクトをクリックすると、<strong>edit-window</strong>にあるオブジェクトを表示するために<strong>edit</strong>を呼び出します。</p>
+<pre>(defun make-list-window (list)
+    (let* ((table (make-instance 'capi:list-panel :items list   
+                                 :print-function #'name
+                                 :callback-type '(:data :collection)
+                                 :action-callback #'(lambda (thing table) (edit thing table))))
+           (window (make-instance 'capi:interface :best-width 320 :best-height 224 :title "Cars"
+                                  :layout (make-instance 'capi:column-layout :description (list table)))))
+      (capi:display window)))<span style="font-family: Arial, Helvetica, sans-serif; font-size: small;"><span style="font-size: 13px; white-space: normal;"><span style="font-family: Monaco, Consolas, 'Lucida Console', 'Courier New', Courier, monospace; font-size: small;"><span style="font-size: 12px; white-space: pre;"><br></span></span></span></span></pre>
+<p>関数editは、そのオブジェクトにedit-windowが存在するかどうかを確認します。もしあれば、新しいものを開かずにそれを前面にもってきます。</p>
+<p>これは、複数のedit-windowが同じオブジェクトに生じる問題を回避するためです:</p>
+<pre>(defun edit (thing table)
+  (let ((existing (find thing (capi:collect-interfaces 'edit-window) :key #'thing)))
+    (if existing (capi:raise-interface existing)
+      (make-edit-window thing table))))</pre>
+<p><span class="Apple-style-span" style="font-size: 15px; font-weight: bold;">例のデータ</span></p>
+<p>Object Editorをテストするために、オブジェクトを定義しましょう。</p>
+<p>(defclass classic-car ()<br>
+  　((name :initarg :name :accessor name)<br>
+  　 (year :initarg :year :type integer)<br>
+  　 (cylinders :initarg :cylinders :type integer)<br>
+  　 (capacity :initarg :capacity :type integer)))</p>
+<p>整数のスロットは、<strong>:type integer</strong>が与えられるべきです。そうでなければ、スロットは文字列だと推測されます。</p>
+<p>いくつかデータを定義してみましょう:</p>
+<pre>(defparameter *cars*
+  (list
+   (make-instance 'classic-car :name "Saab 96V4" :year 1967 :cylinders 4 :capacity 1498) 
+   (make-instance 'classic-car :name "Porsche 911 Carrera" :year 1984 :cylinders 6 :capacity 3200)
+   (make-instance 'classic-car :name "MGC" :year 1967 :cylinders 6 :capacity 2912)
+   (make-instance 'classic-car :name "Ferrari Daytona" :year 1968 :cylinders 12 :capacity 4390)))</pre>
+<p>最後に、一覧ウィンドウにオブジェクトを表示させましょう。</p>
+<p>(make-list-window *cars*)</p>
+<hr>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

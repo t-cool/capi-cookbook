@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook - Multi-Process Dolist</title>
+<link rel="stylesheet" type="text/css" href="../css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="../show-O4/index.html"><img src="../pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="../show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="../show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="../show-A6R/index.html">Simple Tooltips</a></li>
+<li class="on"><a class="auto" href="index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="../show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="../show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>Multi-Process Dolist</h2>
+<p>LispWorksバージョン6で、Lispプログラムが、最近のコンピュータに搭載されているマルチプロセッサやマルチコアを上手く使えるように、いくつかルーチンが導入されました。このマクロを使うと、Lispアプリケーションの計算に時間がかかる部分を並列で処理する<strong>dolist</strong>関数を作成できます。さらに、計算の進捗状況についてフィードバックを与えるプログレッシブバーも作成できます。</p>
+<p><img src="../pictures/o4/progress.gif" alt="progress.gif"></p>
+<p><a href="../list-3Q2/index.html" target="_blank">Complete listing</a></p>
+<h3>例</h3>
+<p>このマクロを使うには、dolistをmp-dolistに置きかえてください。</p>
+<pre>(defun demo1 (n)
+  (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (setf (car x) (divisor (car x)))))</pre>
+<p>この例では、<strong>*numbers*</strong>のリストを、それぞれの数をその最小の因数に置きかえるように、修正します。パラメーターのnは、いくつのプロセッサを使いたいかを特定します。大きな数のリストを因数分解してテストします。</p>
+<p>(defparameter
+  *numbers*
+  '((1000252000747) (1000264007623) (1000250007881) (1000250008229) (1000280016119)
+  　(1000304021879) (1000292019107) (1000304022743) (1000304022143) (1000310024009)))</p>
+<p>一番小さい素因数を探すための単純なルーチンは次のようになります:</p>
+<div>
+  <pre>(defun divisor (n)
+  (let ((test 2))
+    (loop
+     (when (&gt; (* test test) n) (return nil))
+     (when (zerop (rem n test)) (return test))
+     (incf test))))
+</pre>
+<p>次のように呼び出してみてください:</p>
+<pre>(time (demo 1))</pre>
+<p>ルーチンはシングルプロセスで処理されて、次の結果を返します。</p>
+<pre style="color: #000000; font-family: Monaco, Consolas, 'Lucida Console', 'Courier New', Courier, monospace; font-size: 12px; margin: 8px;">Timing the evaluation of (DEMO1 1)
+Elapsed time =        4.943</pre>
+<p>次に、このように書いてください:</p>
+<pre>(time (demo1 2))
+</pre>
+<p>runs it in two processes and gives the following result:</p>
+<p>そうすると、２つのプロセッサーで処理がされて、次の結果がでます。</p>
+<pre style="color: #000000; font-family: Monaco, Consolas, 'Lucida Console', 'Courier New', Courier, monospace; font-size: 12px; margin: 8px;">Timing the evaluation of (DEMO1 2)
+Elapsed time =        3.355</pre>
+<h3>定義</h3>
+<div>
+<p>まず、プログレッシブバーのクラスを定義しましょう:</p>
+</div>
+<div>
+<pre>(defclass progress-bar (capi:interface)
+  ((bar :initarg :bar :accessor bar)))
+</pre>
+</div>
+<p>make-barルーチンは、プログレッシブバーを表示します。<strong>:destroy-callback</strong>関数は、もし<strong>Cancel</strong>ボタンが押されたときに、全ての動作中のプロセスを中止します: </p>
+<pre>(defun make-bar (end semaphore &amp;optional (title "Progress"))
+  (let ((bar (make-instance 'capi:progress-bar
+                            :x 11 :y 40 :external-min-width 200
+                            :external-min-height 12 :start 0 :end end))
+        (cancel (make-instance 'capi:push-button :text "Cancel"
+                               :callback-type :interface :callback #'capi:destroy)))
+    (capi:display
+     (make-instance 
+      'progress-bar 
+      :bar bar :title title :owner (capi:convert-to-screen nil)
+      :destroy-callback
+      #'(lambda (interface)
+          (declare (ignore interface))
+          (let ((w (mp:semaphore-wait-count semaphore)))
+            (when (and w (plusp w))
+              (mp:semaphore-release semaphore :count w))))
+      :layout (make-instance 'capi:row-layout :adjust :center
+                             :description (list bar cancel))))))</pre>
+<p><strong>update-bar</strong>ルーチンは、プログレッシブバーのスラグを動かすために呼びだされます:</p>
+<pre>(defun update-bar (progress value)
+  (setf (capi:range-slug-start (bar progress)) value))</pre>
+<p>最後に、これがmy-dolistの定義です:</p>
+</div>
+<pre>(defmacro mp-dolist ((x list &amp;key title (processes 1)) &amp;body body)
+  "Executes the body with x equal to each item in list,
+   using 4 processes and with a progress bar."
+  (let ((l (gensym)) (n (gensym)) (p (gensym)))
+    `(let* ((,l ,list)
+            (semaphore (mp:make-semaphore))
+            (max (length ,l))
+            (completed (list -1))
+            (jump (ceiling max (* *progress-bar-length* 4)))
+            (bar (make-bar max semaphore ,title))
+            processes)
+       (unwind-protect
+           (progn
+             (dotimes (,p ,processes)
+               (push
+                (mp:process-run-function 
+                 "Dolist-mp" nil
+                 #'(lambda (completed semaphore)
+                     (loop
+                      (let ((,n (sys:atomic-incf (car completed))))
+                        (when (&gt;= ,n max) (return))
+                        (let ((,x (nth ,n ,l)))
+                          (when (zerop (rem ,n jump)) (update-bar bar ,n))
+                          ,@body)))
+                     (mp:semaphore-release semaphore))
+                 completed semaphore)
+                processes))
+             (mp:semaphore-acquire semaphore :count (1+ ,processes)))
+         (map nil #'mp:process-kill processes)
+         (capi:destroy bar)))))</pre>
+<h3>mp-dolistを使う</h3>
+<p>標準の<strong>dolist</strong>マクロと同じように、<strong>mp-dolist</strong>マクロの呼び出しは、<strong>x</strong>が<strong>lst</strong>の要素1つずつに束縛されながら１度実行されます。しかし、bodyは異なるプロセッサーによって実行されるので、共通のリソースにアクセスするときに気をつかう必要があります。</p>
+<pre>(mp-dolist (x lst :title title :processes n)
+  body)
+</pre>
+<p>一番簡単な方法は、共有のリソースへのアクセスを凍結することです。例えば、<strong>result</strong>のリストに結果をpushするバージョンのデモを紹介します。ここでは、元のリストの数を修正するかわりに、2つのプロセッサーが同時にリストを更新しようとするのを防ぐためにロックする方法をとります: </p>
+<pre>(defun demo2 (n)
+  (let ((lock (mp:make-lock))
+        result)
+    (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (let ((d (divisor (car x)))) 
+        (mp:with-lock (lock) (push d result))))
+    (nreverse result)))</pre>
+<p>かわりに、atomic instructionsを使ってもいいです。ただし、<strong>atomic-incf</strong> のようなatomicマクロは、レキシカル変数では動作しないことを注意してください。なので、<strong>result</strong>をlistへのポインターにしなければいけません:</p>
+<pre>(defun demo3 (n)
+  (let ((result (list nil)))
+    (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (sys:atomic-push (divisor (car x)) (car result)))
+    (nreverse (car result))))</pre>
+<hr>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+;;;-*- Mode: Lisp; Package: CL-USER -*-
+
+;;
+;; Boolean Filters Layout
+;;
+;; Copyright (C) 2011 David Johnson-Davies
+;; You are free to use, modify, and redistribute this code however you want, except that any modifications
+;; must be clearly indicated before redistribution. There is no warranty, expressed nor implied.
+
+(defclass items-window (capi:interface)
+  ((things :initarg :things :reader things)
+   (filter :initarg :filter :reader filter)
+   (booleans :initarg :booleans :reader booleans)
+   (list-panel :initarg :list-panel :reader list-panel)))
+
+(defparameter *columns* '("Name" "No" "Even?" "Prime?"))
+(defparameter *boolean-columns* '("Even?" "Prime?"))
+
+(defun make-items-window (things)
+  (let* ((list-panel
+          (make-instance 'capi:multi-column-list-panel :items things :external-min-height 140
+                         :columns (map 'list #'(lambda (column) (list :title column :width 100)) *columns*)))
+         (filter
+          (make-instance 'capi:filtering-layout :change-callback 'update-items-window))
+         (booleans 
+          (map 'list
+               #'(lambda (column)
+                   (make-instance 'capi:option-pane :title column :items '("" "Yes" "No") :external-max-width 64
+                                  :callback-type :interface :selection-callback #'update-items-window))
+               *boolean-columns*))
+         (booleans-row
+          (make-instance 'capi:row-layout :description booleans))
+         (layout
+          (make-instance 'capi:column-layout 
+                         :description (list filter booleans-row list-panel)))
+         (window
+          (make-instance 'items-window :title "Filtering example" :best-width 480 :things things 
+                         :list-panel list-panel :filter filter :booleans booleans :layout layout)))
+    (capi:display window)))
+
+(defun update-items-window (window)
+  (let* ((things (things window))
+         (options (map 'list #'capi:choice-selection (booleans window)))
+         (positions (map 'list #'(lambda (boolean)
+                                   (position (capi:titled-object-title boolean) *columns* :test #'equalp))
+                         (booleans window)))
+         (filtered-things 
+          (multiple-value-bind (regexp excludep)
+              (capi:filtering-layout-match-object-and-exclude-p (filter window) nil)
+            (remove-if-not
+             #'(lambda (item)
+                 (and
+                  (if regexp (find-regexp-in-string regexp (first item)) t)
+                  (every #'(lambda (option position)
+                             (or (zerop option) 
+                                 (eq (not (= 1 option)) (not (nth position item)))))
+                         options positions)))
+             things))))
+    (setf (capi:collection-items
+           (list-panel window)) filtered-things)))
+
+; Example
+
+(defun prime? (n)
+  (let ((test 2))
+    (loop
+     (when (> (* test test) n) (return t))
+     (when (zerop (rem n test)) (return nil))
+     (incf test))))
+
+(setq *things*
+   (let (things)
+     (dotimes (x 1000 (reverse things)) 
+       (push 
+        (list (format nil "~r" x) x (evenp x) (prime? x))
+        things))))

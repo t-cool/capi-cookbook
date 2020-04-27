@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>CAPI Cookbook</title>
+<link rel="stylesheet" type="text/css" href="css/smart/smart.css">
+<style type="text/css"><!--
+#header h1 {color:#9d5f40;}
+
+--></style>
+<link rel="icon" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="shortcut" type="image/x-icon" href="/pictures/O4/favicon.ico">
+<link rel="alternate" type="application/rss+xml" href="/rss?O4+3" title="CAPI Cookbook Feed">
+</head>
+<body>
+<div id="container">
+<div id="header">
+<a href="show-O4/index.html"><img src="pictures/O4/logo.gif" alt="Logo" class="logo"></a>
+<h1 id="title">CAPI Cookbook</h1>
+<div class="headernav">
+<div id="searchform">
+<form action="/search.html" method="post" enctype="application/x-www-form-urlencoded" class="searchform">
+<input type="text" name="find" size="20" maxlength="240" class="searchinput"><input type="hidden" name="id" value="O4"> <input type="submit" name="q" value="Search" id="search">
+</form>
+</div>
+</div>
+</div>
+<div id="wiki">
+<div id="navigation">
+<div class="menu"><ul>
+<li class="on"><a class="auto" href="../index.html">Introduction</a></li>
+<li><a class="auto" href="show-Y6/index.html">Spreadsheet</a></li>
+<li><a class="auto" href="show-1MG/index.html">Object Editor</a></li>
+<li><a class="auto" href="show-A6R/index.html">Simple Tooltips</a></li>
+<li><a class="auto" href="show-1MH/index.html">Multi-Process Dolist</a></li>
+<li><a class="auto" href="show-2IC/index.html">Boolean Filters Layout</a></li>
+<li><a class="auto" href="show-2MM/index.html">List Panels with Drag</a></li>
+</ul></div>
+</div>
+<div id="colophon"></div>
+<div id="content">
+<h2>はじめに</h2>
+<p>最近、Macintosh上で動くアプリケーションをMacintosh Common Lisp(MCL)からLispworksに書きかえる仕事を引き受けました。その仕事の主な作業は、UIをLispworks CAPIで書きかえる作業でした。LispWorks CAPIは、MCLとは全く異なる手法と用語を用いていました。</p>
+<p>このCookbookでは、この経験を一般化して導き出した例を紹介します。LispWorksを使うプログラマーに、役に立つことをのぞんでいます。例では、LispWorks CAPIを用いて、簡潔で役に立つinterfaceアプリケーションを多く作り出す方法をお伝えします。</p>
+<h3><a class="xref" href="show-Y6/index.html">Spreadsheet</a></h3>
+<p>データを表示するためのSpreadsheet:</p>
+<p><img src="pictures/o4/cars.gif" alt="cars.gif"></p>
+<h3><a class="xref" href="show-1MG/index.html">Object Editor</a></h3>
+<p>CLOSオブジェクトのスロットを編集する:</p>
+<p><img src="pictures/o4/cars2.gif" alt="cars2.gif"></p>
+<h3><a class="auto" href="show-A6R/index.html">Simple Tooltips</a></h3>
+<p>ツールチップヘルプをオブジェクトエディタに加える:</p>
+<p><img src="pictures/O4/TOOLTIP.GIF" alt="tooltip.gif"></p>
+<h3><a class="xref" href="show-1MH/index.html">Multi-Process Dolist</a></h3>
+<p>プログレスバーを用いて並列でタスクを走らすことができるdolist:</p>
+<p><img src="pictures/o4/progress.gif" alt="progress.gif"></p>
+<h3><a class="xref" href="show-2IC/index.html">Boolean Filters Layout</a></h3>
+<p>multi-column-listパネルをもつフィルタリングレイアウト。データの特定の列に対して、論理値でフィルタリングをするポップアップメニュー:</p>
+<p><img src="pictures/o4/booleanfilters.gif" alt="booleanfilters.gif"></p>
+<h3><a class="xref" href="show-2MM/index.html">List Panels with Drag</a></h3>
+<p>double-list-panelの左右リスト間にドラッグ&amp;ドロップを加える:</p>
+<p><img src="pictures/o4/drag.gif" alt="drag.gif"></p>
+<hr>
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+var disqus_developer = 1;
+var disqus_shortname = 'capi';
+var disqus_identifier = 'O6';
+var disqus_url = 'http://capi.plasticki.com/show?O6';
+(function() {
+var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+</div>
+<div id="footer"><p style="text-align: center;">Copyright © 2011-2015
+<script type="text/javascript">// <![CDATA[
+email = "david" + String.fromCharCode(64) + "interface.co.uk"
+document.write('<A href="mailto:' + email + '" _mce_href="mailto:' + email + '">David Johnson-Davies<\/a>')
+// ]]></script>
+</p></div>
+</div>
+</body>
+</html>

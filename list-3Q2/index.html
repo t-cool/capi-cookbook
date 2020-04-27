@@ -1,0 +1,98 @@
+;;;-*- Mode: Lisp; Package: CL-USER -*-
+
+;;
+;; Multi-process version of dolist
+;;
+;; Copyright (C) 2011 David Johnson-Davies
+;; You are free to use, modify, and redistribute this code however you want, except that any modifications
+;; must be clearly indicated before redistribution. There is no warranty, expressed nor implied.
+
+(defclass progress-bar (capi:interface)
+  ((bar :initarg :bar :accessor bar)))
+
+(defun make-bar (end semaphore &optional (title "Progress"))
+  (let ((bar (make-instance 'capi:progress-bar
+                            :x 11 :y 40 :external-min-width 200
+                            :external-min-height 12 :start 0 :end end))
+        (cancel (make-instance 'capi:push-button :text "Cancel"
+                               :callback-type :interface :callback #'capi:destroy)))
+    (capi:display
+     (make-instance 
+      'progress-bar 
+      :bar bar :title title :owner (capi:convert-to-screen nil)
+      :destroy-callback
+      #'(lambda (interface)
+          (declare (ignore interface))
+          (let ((w (mp:semaphore-wait-count semaphore)))
+            (when (and w (plusp w))
+              (mp:semaphore-release semaphore :count w))))
+      :layout (make-instance 'capi:row-layout :adjust :center
+                             :description (list bar cancel))))))
+
+(defun update-bar (progress value)
+  (setf (capi:range-slug-start (bar progress)) value))
+
+(defmacro mp-dolist ((x list &key title (processes 1)) &body body)
+  "Executes the body with x equal to each item in list,
+   using multiple processes and with a progress bar."
+  (let ((l (gensym)) (n (gensym)) (p (gensym)))
+    `(let* ((,l ,list)
+            (semaphore (mp:make-semaphore))
+            (max (length ,l))
+            (completed (list -1))
+            (jump (ceiling max 120))
+            (bar (make-bar max semaphore ,title))
+            processes)
+       (unwind-protect
+           (progn
+             (dotimes (,p ,processes)
+               (push
+                (mp:process-run-function 
+                 "Dolist-mp" nil
+                 #'(lambda (completed semaphore)
+                     (loop
+                      (let ((,n (sys:atomic-incf (car completed))))
+                        (when (>= ,n max) (return))
+                        (let ((,x (nth ,n ,l)))
+                          (when (zerop (rem ,n jump)) (update-bar bar ,n))
+                          ,@body)))
+                     (mp:semaphore-release semaphore))
+                 completed semaphore)
+                processes))
+             (mp:semaphore-acquire semaphore :count (1+ ,processes)))
+         (map nil #'mp:process-kill processes)
+         (capi:destroy bar)))))
+
+(defparameter *result* nil)
+
+; Examples
+
+(defun divisor (n)
+  (let ((test 2))
+    (loop
+     (when (> (* test test) n) (return nil))
+     (when (zerop (rem n test)) (return test))
+     (incf test))))
+
+(defparameter
+    *numbers*
+  '((1000252000747) (1000264007623) (1000250007881) (1000250008229) (1000280016119)
+    (1000304021879) (1000292019107) (1000304022743) (1000304022143) (1000310024009)))
+
+(defun demo1 (n)
+  (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (setf (car x) (divisor (car x)))))
+
+(defun demo2 (n)
+  (let ((lock (mp:make-lock))
+        result)
+    (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (let ((d (divisor (car x)))) 
+        (mp:with-lock (lock) (push d result))))
+    (nreverse result)))
+
+(defun demo3 (n)
+  (let ((result (list nil)))
+    (mp-dolist (x *numbers* :title "Largest factor" :processes n)
+      (sys:atomic-push (divisor (car x)) (car result)))
+    (nreverse (car result))))
